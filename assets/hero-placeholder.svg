@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4c0c18"/><stop offset="1" stop-color="#9c3849"/></linearGradient></defs>
+  <rect width="1200" height="700" fill="url(#g)"/>
+  <circle cx="1040" cy="105" r="220" fill="#d6ae68" opacity=".18"/>
+  <path d="M100 515h1000v58H100zM190 430h820v85H190zM300 335h600v95H300z" fill="#fff7ea" opacity=".16"/>
+  <path d="M240 335l360-190 360 190z" fill="#fff7ea" opacity=".22"/>
+  <text x="95" y="105" fill="#fff7ea" font-family="Georgia,serif" font-size="34" letter-spacing="6">EAST-WASHINGTON TIMES</text>
+  <text x="95" y="650" fill="#fff7ea" font-family="Arial,sans-serif" font-size="24" opacity=".75">Replace this demo image with your campus journalism photo</text>
+</svg>

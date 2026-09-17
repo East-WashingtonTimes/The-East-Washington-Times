@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="East-Washington Times monogram">
+  <rect width="160" height="160" rx="28" fill="#6f1425"/>
+  <path d="M33 38h94v12H33zm0 35h72v12H33zm0 35h94v12H33z" fill="#f4e8d3" opacity=".9"/>
+  <text x="80" y="101" text-anchor="middle" font-size="54" font-family="Georgia,serif" font-weight="700" fill="#fff8ed">EWT</text>
+</svg>
