@@ -1192,7 +1192,7 @@
       state.adminStaff
         .map(
           (s) =>
-            `<div class="admin-row"><div><h4>${escapeHtml(s.full_name)}</h4><small>${escapeHtml(s.position)} · ${escapeHtml(s.group_type)}</small></div><div class="row-actions"><button class="danger" data-delete-staff="${escapeHtml(s.id)}">Delete</button></div></div>`,
+            `<div class="admin-row"><div><h4>${escapeHtml(s.full_name)}</h4><small>${escapeHtml(s.position)} · ${escapeHtml(s.group_type)}</small></div><div class="row-actions"><button data-edit-staff="${escapeHtml(s.id)}">Edit</button><button class="danger" data-delete-staff="${escapeHtml(s.id)}">Delete</button></div></div>`,
         )
         .join("") || "<p>No staff members yet.</p>";
     if (state.isAdmin)
@@ -1383,40 +1383,94 @@
       setGlobalBusy(false);
     }
   }
+  function resetStaffForm() {
+    $("#staffForm").reset();
+    $("#staffId").value = "";
+    $("#staffFormMessage").textContent = "";
+    $("#staffSubmitButton").textContent = "Add Member";
+    $("#staffCancelEdit").classList.add("hidden");
+  }
+
+  function editStaff(id) {
+    const member = state.adminStaff.find(
+      (item) => String(item.id) === String(id),
+    );
+    if (!member) return;
+
+    $("#staffId").value = member.id;
+    $("#staffName").value = member.full_name || "";
+    $("#staffRole").value = member.position || "";
+    $("#staffGroup").value = member.group_type || "staff";
+    $("#staffBio").value = member.bio || "";
+    $("#staffPhoto").value = "";
+    $("#staffFormMessage").textContent =
+      "Editing this staff member. Choose a new photo only if you want to replace the current one.";
+    $("#staffSubmitButton").textContent = "Save Changes";
+    $("#staffCancelEdit").classList.remove("hidden");
+
+    switchAdminTab("staff");
+    $("#staffForm").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   async function handleStaffSubmit(e) {
     e.preventDefault();
     if (!db || !state.isEditor) return;
+
     const btn = e.submitter;
-    setButtonBusy(btn, true, "Adding…");
-    setGlobalBusy(true, "Adding team member…");
+    const id = $("#staffId").value;
+    const existing = id
+      ? state.adminStaff.find((item) => String(item.id) === String(id))
+      : null;
+    const editing = !!existing;
+
+    setButtonBusy(btn, true, editing ? "Saving…" : "Adding…");
+    setGlobalBusy(
+      true,
+      editing ? "Saving staff changes…" : "Adding team member…",
+    );
+
     try {
-      let photo = "";
+      let photo = existing?.photo_path || "";
       const file = $("#staffPhoto").files[0];
+
       if (file) {
         setButtonBusy(btn, true, "Uploading photo…");
         setGlobalBusy(true, "Uploading staff photo…");
         photo = await uploadMedia(file, "staff");
       }
+
       const payload = {
         full_name: $("#staffName").value.trim(),
         position: $("#staffRole").value.trim(),
         group_type: $("#staffGroup").value,
         bio: $("#staffBio").value.trim(),
         photo_path: photo,
-        is_active: true,
-        sort_order: (state.adminStaff.at(-1)?.sort_order ?? 0) + 10,
-        created_by: state.currentUser.id,
+        is_active: existing?.is_active ?? true,
+        sort_order:
+          existing?.sort_order ??
+          ((state.adminStaff.at(-1)?.sort_order ?? 0) + 10),
       };
-      const { error } = await db.from("staff_members").insert(payload);
-      if (error) throw error;
-      $("#staffForm").reset();
-      $("#staffFormMessage").textContent = "Member added.";
+
+      const result = editing
+        ? await db.from("staff_members").update(payload).eq("id", id)
+        : await db
+            .from("staff_members")
+            .insert({ ...payload, created_by: state.currentUser.id });
+
+      if (result.error) throw result.error;
+
+      $("#staffFormMessage").textContent = editing
+        ? "Staff member updated."
+        : "Member added.";
+
+      resetStaffForm();
       await Promise.all([loadAdminData(), loadPublicData()]);
-      showToast("Editorial board updated");
+      showToast(editing ? "Staff member updated" : "Editorial board updated");
     } catch (err) {
       console.error(err);
       $("#staffFormMessage").textContent =
-        err.message || "Could not add member.";
+        err.message ||
+        (editing ? "Could not update member." : "Could not add member.");
     } finally {
       setButtonBusy(btn, false);
       setGlobalBusy(false);
@@ -1637,6 +1691,11 @@
         }
         return;
       }
+      const es = e.target.closest("[data-edit-staff]");
+      if (es) {
+        editStaff(es.dataset.editStaff);
+        return;
+      }
       const ds = e.target.closest("[data-delete-staff]");
       if (ds) {
         if (!confirm("Remove this staff member?")) return;
@@ -1646,6 +1705,9 @@
           .eq("id", ds.dataset.deleteStaff);
         if (error) showToast(error.message);
         else {
+          if (String($("#staffId").value) === String(ds.dataset.deleteStaff)) {
+            resetStaffForm();
+          }
           await Promise.all([loadAdminData(), loadPublicData()]);
           showToast("Staff member removed");
         }
@@ -1853,6 +1915,7 @@
     });
     $("#articleForm").addEventListener("submit", handleArticleSubmit);
     $("#staffForm").addEventListener("submit", handleStaffSubmit);
+    $("#staffCancelEdit").addEventListener("click", resetStaffForm);
     $("#publicationForm").addEventListener("submit", handlePublicationSubmit);
     $("#achievementForm").addEventListener("submit", handleAchievementSubmit);
     $("#articleReset").addEventListener("click", resetArticleForm);
