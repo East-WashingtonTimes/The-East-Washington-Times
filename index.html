@@ -10,7 +10,7 @@
     <title>The East-Washington Times | BEWNHS</title>
     <link rel="icon" href="assets/publication-mark.png" type="image/png" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-    <link rel="stylesheet" href="styles.css?v=premium-v18-20260920" />
+    <link rel="stylesheet" href="styles.css?v=premium-v20-20260921" />
   </head>
   <body class="intro-locked">
     <div
@@ -838,6 +838,7 @@
 
         <section id="adminStaff" class="admin-tab-panel">
           <form id="staffForm" class="editor-form">
+            <input id="staffId" type="hidden" />
             <div class="form-grid">
               <label
                 >Full name<input id="staffName" required maxlength="120"
@@ -863,7 +864,22 @@
                 ></textarea>
               </label>
             </div>
-            <button class="btn btn-primary" type="submit">Add Member</button>
+            <div class="staff-form-actions">
+              <button
+                class="btn btn-primary"
+                id="staffSubmitButton"
+                type="submit"
+              >
+                Add Member
+              </button>
+              <button
+                class="btn btn-ghost hidden"
+                id="staffCancelEdit"
+                type="button"
+              >
+                Cancel edit
+              </button>
+            </div>
             <p
               id="staffFormMessage"
               class="form-message"
@@ -1071,8 +1087,8 @@
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="config.js?v=premium-v18-20260920"></script>
+    <script src="config.js?v=premium-v20-20260921"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-    <script src="app.js?v=premium-v18-20260920"></script>
+    <script src="app.js?v=premium-v20-20260921"></script>
   </body>
 </html>
