@@ -253,6 +253,57 @@
       ? ""
       : new Intl.DateTimeFormat("en-PH", options).format(d);
   }
+  function formatRelativeTime(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) return "Just now";
+
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return "Just now";
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes === 1 ? "A minute ago" : `${minutes} minutes ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours === 1 ? "An hour ago" : `${hours} hours ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return days === 1 ? "A day ago" : `${days} days ago`;
+
+    const weeks = Math.floor(days / 7);
+    if (days < 30) return weeks === 1 ? "A week ago" : `${weeks} weeks ago`;
+
+    const months = Math.floor(days / 30);
+    if (days < 365) return months === 1 ? "A month ago" : `${months} months ago`;
+
+    const years = Math.floor(days / 365);
+    return years === 1 ? "A year ago" : `${years} years ago`;
+  }
+
+  function relativeTimeHtml(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    const iso = d.toISOString();
+    const exact = formatDate(value, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return `<time class="relative-time" datetime="${escapeHtml(iso)}" data-relative-time="${escapeHtml(iso)}" title="${escapeHtml(exact)}">${escapeHtml(formatRelativeTime(value))}</time>`;
+  }
+
+  function refreshRelativeTimes() {
+    document.querySelectorAll("[data-relative-time]").forEach((el) => {
+      const value = el.getAttribute("data-relative-time");
+      el.textContent = formatRelativeTime(value);
+    });
+  }
   function initials(name = "") {
     return (
       name
@@ -595,7 +646,7 @@
   }
 
   function storyMeta(a) {
-    return `${escapeHtml(a.author_name || state.settings.publication_name)} · ${escapeHtml(formatDate(a.published_at))}${a.demo ? ' · <span class="demo-badge">DEMO</span>' : ""}`;
+    return `${escapeHtml(a.author_name || state.settings.publication_name)} · ${relativeTimeHtml(a.published_at)}${a.demo ? ' · <span class="demo-badge">DEMO</span>' : ""}`;
   }
   function cardHtml(a) {
     return `<article class="article-card"><button type="button" data-article-id="${escapeHtml(a.id)}">${coverHtml(a)}<span class="section-kicker">${escapeHtml(normalizeCategory(a.category))}</span><h3>${escapeHtml(a.title)}</h3><p>${escapeHtml(a.dek || "")}</p><div class="card-meta">${storyMeta(a)}</div></button></article>`;
@@ -660,7 +711,7 @@
       top
         .map(
           (a) =>
-            `<article class="top-story"><button data-article-id="${escapeHtml(a.id)}"><span class="section-kicker">${escapeHtml(a.category)}</span><h3>${escapeHtml(a.title)}</h3><p>${escapeHtml(formatDate(a.published_at))}</p></button></article>`,
+            `<article class="top-story"><button data-article-id="${escapeHtml(a.id)}">${coverHtml(a, "top-story-media")}<div class="top-story-copy"><span class="section-kicker">${escapeHtml(a.category)}</span><h3>${escapeHtml(a.title)}</h3><p>${relativeTimeHtml(a.published_at)}</p></div></button></article>`,
         )
         .join("") || '<p class="muted">No additional stories yet.</p>';
     $("#latestGrid").innerHTML =
@@ -708,7 +759,7 @@
       ? arr
           .map(
             (a) =>
-              `<article class="stacked-story">${coverHtml(a, "stacked-media")}<button data-article-id="${escapeHtml(a.id)}"><span class="section-kicker">${escapeHtml(a.category)}</span><h3>${escapeHtml(a.title)}</h3><small>${escapeHtml(formatDate(a.published_at))}</small></button></article>`,
+              `<article class="stacked-story">${coverHtml(a, "stacked-media")}<button data-article-id="${escapeHtml(a.id)}"><span class="section-kicker">${escapeHtml(a.category)}</span><h3>${escapeHtml(a.title)}</h3><small>${relativeTimeHtml(a.published_at)}</small></button></article>`,
           )
           .join("")
       : "";
@@ -944,6 +995,7 @@
     renderBreaking();
     renderDynamicNav();
     applyCurrentHash();
+    refreshRelativeTimes();
   }
 
   function openArticle(id) {
@@ -1996,6 +2048,9 @@
       });
       setTimeout(() => refreshAdminUser().catch(console.error), 0);
     }
+
+    // Keep homepage timestamps current while the page stays open.
+    window.setInterval(refreshRelativeTimes, 60000);
   }
   function openRequestedPage() {
     if (!openingComplete || !startupDataReady) return;
