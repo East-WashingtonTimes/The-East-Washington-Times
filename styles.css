@@ -6263,3 +6263,11 @@ dialog::backdrop {
     font-size: 11px !important;
   }
 }
+
+@media (max-width: 700px) {
+  body.menu-open .menu-toggle,
+  body.menu-open .menu-toggle .menu-label,
+  body.menu-open .menu-toggle .menu-label::after {
+    color: #ffffff !important;
+  }
+}
