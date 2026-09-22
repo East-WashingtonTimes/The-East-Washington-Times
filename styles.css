@@ -6264,10 +6264,222 @@ dialog::backdrop {
   }
 }
 
+
+/* ========================================================================== 
+   V22 — Match Top Stories height to the Front Page lead story
+   ========================================================================== */
+@media (min-width: 1101px) {
+  /* The lead story is 430px on desktop, so the complete Top Stories column
+     now occupies exactly the same vertical space. */
+  .hero-grid {
+    align-items: start !important;
+  }
+
+  .top-stories {
+    height: 430px !important;
+    min-height: 430px !important;
+    max-height: 430px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .top-stories > .section-kicker {
+    flex: 0 0 auto !important;
+    padding: 12px 0 10px !important;
+    margin: 0 !important;
+  }
+
+  #topStoriesList {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .top-story {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    padding: 8px 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .top-story:first-child {
+    border-top: 1px solid var(--line) !important;
+  }
+
+  .top-story button {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 88px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    align-items: center !important;
+  }
+
+  .top-story-media {
+    width: 88px !important;
+    height: 66px !important;
+    min-width: 88px !important;
+    max-width: 88px !important;
+    margin: 0 !important;
+  }
+
+  .top-story-copy {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .top-story .section-kicker {
+    margin: 0 0 4px !important;
+    font-size: 8px !important;
+  }
+
+  .top-story h3 {
+    margin: 0 0 5px !important;
+    font-size: 16px !important;
+    line-height: 1.08 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .top-story p {
+    margin: 0 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+
+/* ========================================================================== 
+   Search panel Close button — keep the text white by default
+   ========================================================================== */
+#searchClose {
+  color: #ffffff !important;
+}
+
+
+/* ========================================================================== 
+   V23 — Mobile Front Page Hero: compact lower-left editorial overlay
+   Keeps more of the photograph visible instead of letting the text fill it.
+   ========================================================================== */
 @media (max-width: 700px) {
-  body.menu-open .menu-toggle,
-  body.menu-open .menu-toggle .menu-label,
-  body.menu-open .menu-toggle .menu-label::after {
-    color: #ffffff !important;
+  .lead-story {
+    min-height: 390px !important;
+    height: 390px !important;
+  }
+
+  .lead-story .lead-media::before {
+    background:
+      linear-gradient(to top,
+        rgba(14, 2, 7, .88) 0%,
+        rgba(18, 3, 8, .66) 27%,
+        rgba(18, 3, 8, .28) 52%,
+        rgba(18, 3, 8, .06) 76%,
+        rgba(18, 3, 8, 0) 100%) !important;
+  }
+
+  .lead-overlay {
+    top: auto !important;
+    left: 18px !important;
+    right: 18px !important;
+    bottom: 16px !important;
+    max-width: 92% !important;
+    max-height: calc(100% - 82px) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Give the category badge breathing room from the top of the image area. */
+  .lead-overlay .story-tag {
+    padding: 6px 9px !important;
+    margin: 0 0 9px 0 !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    letter-spacing: .13em !important;
+  }
+
+  .lead-overlay h2 {
+    max-width: 94% !important;
+    margin: 0 0 8px !important;
+    font-size: clamp(28px, 8.2vw, 36px) !important;
+    line-height: 1.01 !important;
+    letter-spacing: -.035em !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    overflow: hidden !important;
+  }
+
+  .lead-overlay p {
+    max-width: 92% !important;
+    margin: 0 0 8px !important;
+    font-size: 12.5px !important;
+    line-height: 1.3 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 1 !important;
+    overflow: hidden !important;
+  }
+
+  .lead-overlay .story-meta {
+    max-width: 94% !important;
+    margin: 0 !important;
+    gap: 5px !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .lead-overlay .lead-read {
+    margin-top: 10px !important;
+    padding-bottom: 4px !important;
+    gap: 8px !important;
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .lead-story {
+    min-height: 370px !important;
+    height: 370px !important;
+  }
+
+  .lead-overlay {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 14px !important;
+    max-height: calc(100% - 76px) !important;
+  }
+
+  .lead-overlay h2 {
+    font-size: clamp(26px, 8.5vw, 32px) !important;
+    -webkit-line-clamp: 3 !important;
+  }
+
+  .lead-overlay p {
+    font-size: 12px !important;
+  }
+
+  .lead-overlay .story-meta {
+    font-size: 10.5px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .lead-overlay p {
+    display: none !important;
+  }
+
+  .lead-overlay h2 {
+    font-size: 25px !important;
   }
 }
