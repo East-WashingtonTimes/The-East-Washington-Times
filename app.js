@@ -241,6 +241,28 @@
         })[c],
     );
   }
+  function imageCreditText(value = "") {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+
+    const clean = raw
+      .replace(/^photo\s*(?:credit)?\s*[:\-]\s*/i, "")
+      .replace(/^photo\s+(?:taken\s+)?by\s*[:\-]?\s*/i, "")
+      .replace(/^photograph\s+by\s*[:\-]?\s*/i, "")
+      .replace(/^image\s+credit\s*[:\-]\s*/i, "")
+      .replace(/^image\s+by\s*[:\-]?\s*/i, "")
+      .trim();
+
+    if (/^illustration\s+by\b/i.test(raw)) {
+      return `Illustration: ${raw.replace(/^illustration\s+by\s*[:\-]?\s*/i, "").trim()}`;
+    }
+    if (/^illustration\s*[:\-]/i.test(raw)) {
+      return `Illustration: ${raw.replace(/^illustration\s*[:\-]\s*/i, "").trim()}`;
+    }
+
+    return `Photo: ${clean || raw}`;
+  }
+
   function clamp(n, min, max) {
     n = Number(n);
     return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min;
@@ -701,11 +723,11 @@
     const featured = sorted.filter((a) => a.is_featured);
     const lead = featured[0] || sorted[0];
     if (lead) {
-      const leadCredit = String(lead.image_credit || "").trim();
+      const leadCredit = imageCreditText(lead.image_credit);
       const leadEl = $("#leadStory");
       leadEl.className = `lead-story ${frameClass(lead)}`;
       leadEl.innerHTML =
-        `<div class="lead-media media-frame ${frameClass(lead)}" style="${coverStyle(lead)}"><img src="${escapeHtml(mediaUrl(lead.cover_image_path))}" alt="" fetchpriority="high"></div><div class="lead-overlay"><span class="story-tag">${escapeHtml(lead.category)}</span><h2>${escapeHtml(lead.title)}</h2><p>${escapeHtml(lead.dek || "")}</p><div class="story-meta">${storyMeta(lead)}</div><span class="lead-read">Read the full story <span aria-hidden="true">↗</span></span></div>${leadCredit ? `<span class="lead-image-credit">${escapeHtml(leadCredit)}</span>` : ""}<button class="story-button" aria-label="Read ${escapeHtml(lead.title)}" data-article-id="${escapeHtml(lead.id)}"></button>`;
+        `<div class="lead-media media-frame ${frameClass(lead)}" style="${coverStyle(lead)}"><img src="${escapeHtml(mediaUrl(lead.cover_image_path))}" alt="" fetchpriority="high"></div><div class="lead-overlay"><span class="story-tag">${escapeHtml(lead.category)}</span><h2>${escapeHtml(lead.title)}</h2><p>${escapeHtml(lead.dek || "")}</p><div class="story-meta">${storyMeta(lead)}</div><span class="lead-read">Read the full story <span aria-hidden="true">↗</span></span></div>${leadCredit ? `<span class="lead-image-credit" aria-label="Image credit">${escapeHtml(leadCredit)}</span>` : ""}<button class="story-button" aria-label="Read ${escapeHtml(lead.title)}" data-article-id="${escapeHtml(lead.id)}"></button>`;
     } else {
       $("#leadStory").className = "lead-story";
       $("#leadStory").innerHTML =
@@ -1054,10 +1076,11 @@
       coverPath ||
       fallbackCoverByCategory[normalizeCategory(a.category)] ||
       "assets/hero-placeholder.svg";
-    const imageCredit = String(a.image_credit || "").trim();
-    // Use the exact same saved frame/zoom/position/rotation as the CMS preview.
-    // The source image file itself is still never changed.
-    const coverHtml = `<figure class="reader-cover-frame media-frame ${frameClass(a)}" style="${coverStyle(a)}"><img src="${escapeHtml(mediaUrl(readerCoverPath))}" alt="${escapeHtml(a.title || "Article image")}" loading="eager"><figcaption>${imageCredit ? escapeHtml(imageCredit) : "Story image · The East-Washington Times"}</figcaption></figure>`;
+    const imageCredit = imageCreditText(a.image_credit);
+    // Keep the image frame separate from its caption so the credit always sits
+    // below the photograph, like a standard newsroom figure caption.
+    const readerFrame = frameClass(a);
+    const coverHtml = `<figure class="reader-cover ${readerFrame}"><div class="reader-cover-frame media-frame ${readerFrame}" style="${coverStyle(a)}"><img src="${escapeHtml(mediaUrl(readerCoverPath))}" alt="${escapeHtml(a.title || "Article image")}" loading="eager"></div>${imageCredit ? `<figcaption class="reader-cover-credit">${escapeHtml(imageCredit)}</figcaption>` : ""}</figure>`;
 
     $("#articleReader").innerHTML =
       `<header class="reader-header"><span class="story-tag">${escapeHtml(normalizeCategory(a.category))}</span><h1>${escapeHtml(a.title)}</h1><p class="reader-dek">${escapeHtml(a.dek || "")}</p><div class="reader-meta"><span>By ${escapeHtml(a.author_name || state.settings.publication_name)}</span><span>${escapeHtml(formatDate(a.published_at))}</span>${isDeveloping ? '<span class="reader-status">Developing</span>' : ""}${a.demo ? '<span>Demo</span>' : ""}</div></header>${coverHtml}<div class="reader-body ${isDeveloping ? "is-developing" : ""}">${bodyHtml}</div><footer class="reader-footer"><strong>${escapeHtml(state.settings.publication_name || OFFICIAL_PUBLICATION_NAME)}</strong><span>Student journalism from ${escapeHtml(state.settings.school_name || DEFAULT_SETTINGS.school_name)}</span></footer>`;
@@ -1206,12 +1229,12 @@
               >
             </label>
             <label>
-              <span>Credit / creator <small>(optional)</small></span>
+              <span>Credit / source <small>(optional)</small></span>
               <input
                 type="text"
                 maxlength="180"
                 value="${credit}"
-                placeholder="Photo by… / Illustration by…"
+                placeholder="Juan Dela Cruz / The East-Washington Times"
                 data-photo-credit="${key}"
               >
             </label>
@@ -1417,11 +1440,11 @@
 
   function inlineArticlePhotoHtml(photo, index) {
     const caption = String(photo.caption || "").trim();
-    const credit = String(photo.credit || "").trim();
-    const captionBits = [caption, credit].filter(Boolean);
+    const credit = imageCreditText(photo.credit);
+    const hasCaption = Boolean(caption || credit);
     return `<figure class="reader-inline-photo">
       <img src="${escapeHtml(mediaUrl(photo.image_path))}" alt="${escapeHtml(caption || `Article photo ${index + 1}`)}" loading="lazy">
-      ${captionBits.length ? `<figcaption>${captionBits.map((bit) => escapeHtml(bit)).join(" · ")}</figcaption>` : ""}
+      ${hasCaption ? `<figcaption>${caption ? `<span class="reader-photo-caption">${escapeHtml(caption)}</span>` : ""}${credit ? `<span class="reader-photo-credit">${escapeHtml(credit)}</span>` : ""}</figcaption>` : ""}
     </figure>`;
   }
 
