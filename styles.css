@@ -7166,3 +7166,109 @@ dialog::backdrop {
 .top-stories-empty {
   padding: 14px 12px;
 }
+
+/* ========================================================================== 
+   V28 — Professional newsroom image credits
+   Research direction: keep front-page attribution unobtrusive; place full
+   article credits directly beneath their images as figure metadata.
+   ========================================================================== */
+
+/* Front page: remove the heavy black badge. The credit remains legible over
+   photography but behaves like quiet metadata rather than another headline. */
+.lead-image-credit {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 12px !important;
+  z-index: 4 !important;
+  max-width: min(48%, 360px) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, .82) !important;
+  font-family: var(--sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  letter-spacing: .01em !important;
+  text-align: right !important;
+  text-transform: none !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, .82),
+    0 0 10px rgba(0, 0, 0, .45) !important;
+  pointer-events: none !important;
+}
+
+/* Article reader: the figure owns the spacing; the cropped image frame and
+   the credit are siblings so overflow/aspect-ratio rules can never clip the
+   credit or place it on top of the photo. */
+.reader-cover {
+  display: block;
+  max-width: 100%;
+  margin: 30px auto 38px;
+}
+.reader-cover.frame-landscape,
+.reader-cover.frame-auto {
+  width: min(100%, 920px);
+}
+.reader-cover.frame-square {
+  width: min(100%, 720px);
+}
+.reader-cover.frame-portrait {
+  width: min(100%, 560px);
+}
+.reader-cover .reader-cover-frame.media-frame {
+  width: 100% !important;
+  margin: 0 !important;
+}
+.reader-cover-credit {
+  display: block;
+  margin: 8px 0 0;
+  padding: 0 1px;
+  color: #746a67;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: .005em;
+  text-align: left;
+}
+
+/* Additional article images: caption first, credit on its own quieter line. */
+.reader-inline-photo figcaption {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+}
+.reader-photo-caption {
+  display: block;
+  color: #554b49;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.reader-photo-credit {
+  display: block;
+  color: #807572;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .lead-image-credit {
+    right: 11px !important;
+    bottom: 8px !important;
+    max-width: 58% !important;
+    font-size: 8.5px !important;
+  }
+  .reader-cover {
+    width: 100% !important;
+    margin: 22px auto 30px !important;
+  }
+  .reader-cover-credit {
+    margin-top: 7px;
+    padding: 0 2px;
+    font-size: 10px;
+  }
+}
