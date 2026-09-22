@@ -6790,3 +6790,225 @@ dialog::backdrop {
     font-size: 14px !important;
   }
 }
+
+
+/* ==========================================================================
+   V26 — Preserve original cover image + in-site framing editor
+   ========================================================================== */
+
+/* "Original / Fit full image" keeps the whole source image visible.
+   The uploaded file itself is never cropped or rewritten. */
+.media-frame.frame-auto img,
+.frame-auto.media-frame img {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+/* Make the editor's original-image mode visually obvious. */
+.cover-preview.frame-auto {
+  aspect-ratio: 16 / 10 !important;
+  background:
+    linear-gradient(45deg, rgba(0,0,0,.035) 25%, transparent 25%) 0 0 / 18px 18px,
+    linear-gradient(-45deg, rgba(0,0,0,.035) 25%, transparent 25%) 0 9px / 18px 18px,
+    linear-gradient(45deg, transparent 75%, rgba(0,0,0,.035) 75%) 9px -9px / 18px 18px,
+    linear-gradient(-45deg, transparent 75%, rgba(0,0,0,.035) 75%) -9px 0 / 18px 18px,
+    #f4f0ec !important;
+}
+
+/* In the full article, always show the complete original image with its
+   natural aspect ratio. Cover framing is only for cards/front page. */
+.reader-cover-frame.reader-cover-original {
+  width: min(100%, 920px) !important;
+  max-width: 920px !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  margin: 30px auto 36px !important;
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+.reader-cover-frame.reader-cover-original img {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  transform: none !important;
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+.image-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .image-editor-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .reader-cover-frame.reader-cover-original {
+    width: 100% !important;
+    margin: 20px 0 26px !important;
+  }
+
+  .reader-cover-frame.reader-cover-original img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    object-fit: contain !important;
+  }
+}
+
+
+/* ==========================================================================
+   V26 FIXED — published image must match the CMS image editor
+   ========================================================================== */
+
+/* On desktop the Front Page crop window now uses the SAME aspect ratio that
+   the editor preview uses. This removes the extra re-cropping that made the
+   published hero look different from the editor. */
+@media (min-width: 701px) {
+  .lead-story.frame-landscape,
+  .lead-story.frame-auto {
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 16 / 10 !important;
+  }
+
+  .lead-story.frame-square {
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+  }
+
+  .lead-story.frame-portrait {
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 3 / 4 !important;
+  }
+
+  .lead-story.frame-auto .lead-media img {
+    object-fit: contain !important;
+  }
+}
+
+/* Do not let the generic hero rule override Original/Fit mode. */
+.lead-story.frame-auto .lead-media img {
+  object-fit: contain !important;
+}
+
+/* The article reader uses the same frame and transform as the editor. */
+.reader-cover-frame.media-frame {
+  margin: 30px auto 36px !important;
+  overflow: hidden !important;
+  background: #f2eee9 !important;
+}
+.reader-cover-frame.media-frame.frame-landscape,
+.reader-cover-frame.media-frame.frame-auto {
+  width: min(100%, 920px) !important;
+  aspect-ratio: 16 / 10 !important;
+}
+.reader-cover-frame.media-frame.frame-square {
+  width: min(100%, 720px) !important;
+  aspect-ratio: 1 / 1 !important;
+}
+.reader-cover-frame.media-frame.frame-portrait {
+  width: min(100%, 560px) !important;
+  aspect-ratio: 3 / 4 !important;
+}
+.reader-cover-frame.media-frame img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform:
+    translate(var(--cover-x), var(--cover-y))
+    rotate(var(--cover-rotation))
+    scale(var(--cover-zoom)) !important;
+  transform-origin: center center !important;
+  opacity: 1 !important;
+}
+.reader-cover-frame.media-frame.frame-auto img {
+  object-fit: contain !important;
+}
+.reader-cover-frame.media-frame figcaption {
+  position: relative;
+  z-index: 2;
+  padding-top: 8px;
+  background: var(--paper);
+}
+
+/* Front-page credit: visible but deliberately unobtrusive. */
+.lead-image-credit {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 3;
+  max-width: 44%;
+  padding: 4px 7px;
+  background: rgba(16, 3, 8, .62);
+  color: rgba(255,255,255,.92);
+  font-family: var(--sans);
+  font-size: 9px;
+  line-height: 1.25;
+  text-align: right;
+  pointer-events: none;
+}
+
+/* Article Library sort control — intentionally separated from the heading so
+   it is easy to find on desktop and mobile. */
+.article-library-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 14px 0 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+}
+.article-library-toolbar label {
+  margin: 0 !important;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.article-library-toolbar select {
+  width: auto !important;
+  min-width: 180px;
+  margin: 0 !important;
+}
+
+/* Photo credit field inside the multi-image article manager. */
+.article-image-fields {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .article-library-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .article-library-toolbar select {
+    width: 100% !important;
+    min-width: 0;
+  }
+  .lead-image-credit {
+    right: 10px;
+    bottom: 8px;
+    max-width: 52%;
+    font-size: 8px;
+  }
+}
