@@ -10,7 +10,7 @@
     <title>The East-Washington Times | BEWNHS</title>
     <link rel="icon" href="assets/publication-mark.png" type="image/png" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-    <link rel="stylesheet" href="styles.css?v=premium-v24-20260922" />
+    <link rel="stylesheet" href="styles.css?v=v26-fixed-20260922" />
   </head>
   <body class="intro-locked">
     <div
@@ -744,6 +744,16 @@
                     accept="image/*"
                 /></label>
                 <label
+                  >Image credit / creator
+                  <small class="field-help">Example: Photo by Juan Dela Cruz or Illustration by Maria Santos.</small>
+                  <input
+                    id="articleImageCredit"
+                    type="text"
+                    maxlength="180"
+                    placeholder="Photo by… / Illustration by…"
+                  />
+                </label>
+                <label
                   >Publish date<input id="articleDate" type="datetime-local"
                 /></label>
                 <div class="span-2 image-editor" id="coverEditor">
@@ -751,17 +761,27 @@
                     <div>
                       <strong>Cover image framing</strong>
                       <p>
-                        Editors and admins can adjust how the image appears
-                        without changing the original file.
+                        The original uploaded image is always preserved.
+                        This preview uses the same saved crop, zoom, position, and rotation
+                        that will be used on the published Front Page and article view.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      class="btn btn-ghost compact-btn"
-                      id="coverEditorReset"
-                    >
-                      Reset image
-                    </button>
+                    <div class="image-editor-actions">
+                      <button
+                        type="button"
+                        class="btn btn-ghost compact-btn"
+                        id="coverFitOriginal"
+                      >
+                        Fit original
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost compact-btn"
+                        id="coverEditorReset"
+                      >
+                        Reset image
+                      </button>
+                    </div>
                   </div>
                   <div class="image-editor-grid">
                     <div
@@ -776,11 +796,11 @@
                     </div>
                     <div class="image-controls">
                       <label
-                        >Frame<select id="coverFrame">
-                          <option value="landscape">Landscape</option>
-                          <option value="portrait">Portrait</option>
-                          <option value="square">Square</option>
-                          <option value="auto">Auto</option>
+                        >Display<select id="coverFrame">
+                          <option value="auto">Original / Fit full image</option>
+                          <option value="landscape">Landscape crop</option>
+                          <option value="portrait">Portrait crop</option>
+                          <option value="square">Square crop</option>
                         </select></label
                       >
                       <label
@@ -1053,6 +1073,15 @@
               article back in the Article Editor; Delete removes it after
               confirmation.
             </p>
+            <div class="article-library-toolbar">
+              <label for="articleLibrarySort">Sort articles</label>
+              <select id="articleLibrarySort" aria-label="Sort Article Library">
+                <option value="newest" selected>Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="updated">Recently updated</option>
+                <option value="title">Title A–Z</option>
+              </select>
+            </div>
             <div
               id="adminArticleList"
               class="admin-list article-library-list"
@@ -1126,6 +1155,6 @@
 
     <script src="config.js?v=premium-v24-20260922"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-    <script src="app.js?v=premium-v24-20260922"></script>
+    <script src="app.js?v=v26-breaking-24h-20260922"></script>
   </body>
 </html>
