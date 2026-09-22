@@ -558,7 +558,7 @@
       a.cover_frame,
     )
       ? a.cover_frame
-      : "landscape";
+      : "auto";
     return {
       zoom: clamp(a.cover_zoom ?? 1, 0.5, 3),
       x: clamp(a.cover_offset_x ?? 0, -50, 50),
@@ -701,10 +701,13 @@
     const featured = sorted.filter((a) => a.is_featured);
     const lead = featured[0] || sorted[0];
     if (lead) {
-      $("#leadStory").innerHTML =
-        `<div class="lead-media media-frame ${frameClass(lead)}" style="${coverStyle(lead)}"><img src="${escapeHtml(mediaUrl(lead.cover_image_path))}" alt="" fetchpriority="high"></div><div class="lead-overlay"><span class="story-tag">${escapeHtml(lead.category)}</span><h2>${escapeHtml(lead.title)}</h2><p>${escapeHtml(lead.dek || "")}</p><div class="story-meta">${storyMeta(lead)}</div><span class="lead-read">Read the full story <span aria-hidden="true">↗</span></span></div><button class="story-button" aria-label="Read ${escapeHtml(lead.title)}" data-article-id="${escapeHtml(lead.id)}"></button>`;
-      $("#leadStory").classList.remove("skeleton-card");
+      const leadCredit = String(lead.image_credit || "").trim();
+      const leadEl = $("#leadStory");
+      leadEl.className = `lead-story ${frameClass(lead)}`;
+      leadEl.innerHTML =
+        `<div class="lead-media media-frame ${frameClass(lead)}" style="${coverStyle(lead)}"><img src="${escapeHtml(mediaUrl(lead.cover_image_path))}" alt="" fetchpriority="high"></div><div class="lead-overlay"><span class="story-tag">${escapeHtml(lead.category)}</span><h2>${escapeHtml(lead.title)}</h2><p>${escapeHtml(lead.dek || "")}</p><div class="story-meta">${storyMeta(lead)}</div><span class="lead-read">Read the full story <span aria-hidden="true">↗</span></span></div>${leadCredit ? `<span class="lead-image-credit">${escapeHtml(leadCredit)}</span>` : ""}<button class="story-button" aria-label="Read ${escapeHtml(lead.title)}" data-article-id="${escapeHtml(lead.id)}"></button>`;
     } else {
+      $("#leadStory").className = "lead-story";
       $("#leadStory").innerHTML =
         '<div class="empty-hero"><span class="section-kicker light">Newsroom</span><h2>No published stories yet.</h2><p>Authorized staff can publish the first story from the CMS.</p></div>';
     }
@@ -915,11 +918,26 @@
       : "<p>No published stories in this section yet.</p>";
   }
   function renderBreaking() {
-    const breaking = state.articles.find((a) => a.is_breaking);
+    const now = Date.now();
+    const BREAKING_DURATION_MS = 24 * 60 * 60 * 1000;
+
+    // Breaking News is temporary: only show a published breaking article
+    // during the first 24 hours after its published_at time.
+    const breaking = state.articles.find((a) => {
+      if (!a.is_breaking || !a.published_at) return false;
+      const publishedAt = new Date(a.published_at).getTime();
+      if (!Number.isFinite(publishedAt)) return false;
+      const age = now - publishedAt;
+      return age >= 0 && age < BREAKING_DURATION_MS;
+    });
+
     if (!breaking) {
       $("#breakingBar").classList.add("hidden");
+      $("#breakingHeadline").textContent = "";
+      delete $("#breakingHeadline").dataset.articleId;
       return;
     }
+
     $("#breakingHeadline").textContent = breaking.title;
     $("#breakingHeadline").dataset.articleId = breaking.id;
     $("#breakingBar").classList.remove("hidden");
@@ -1030,7 +1048,10 @@
       coverPath ||
       fallbackCoverByCategory[normalizeCategory(a.category)] ||
       "assets/hero-placeholder.svg";
-    const coverHtml = `<figure class="reader-cover-frame media-frame ${frameClass(a)}" style="${coverStyle(a)}"><img src="${escapeHtml(mediaUrl(readerCoverPath))}" alt="${escapeHtml(a.title || "Article image")}" loading="eager"><figcaption>Story image · The East-Washington Times</figcaption></figure>`;
+    const imageCredit = String(a.image_credit || "").trim();
+    // Use the exact same saved frame/zoom/position/rotation as the CMS preview.
+    // The source image file itself is still never changed.
+    const coverHtml = `<figure class="reader-cover-frame media-frame ${frameClass(a)}" style="${coverStyle(a)}"><img src="${escapeHtml(mediaUrl(readerCoverPath))}" alt="${escapeHtml(a.title || "Article image")}" loading="eager"><figcaption>${imageCredit ? escapeHtml(imageCredit) : "Story image · The East-Washington Times"}</figcaption></figure>`;
 
     $("#articleReader").innerHTML =
       `<header class="reader-header"><span class="story-tag">${escapeHtml(normalizeCategory(a.category))}</span><h1>${escapeHtml(a.title)}</h1><p class="reader-dek">${escapeHtml(a.dek || "")}</p><div class="reader-meta"><span>By ${escapeHtml(a.author_name || state.settings.publication_name)}</span><span>${escapeHtml(formatDate(a.published_at))}</span>${isDeveloping ? '<span class="reader-status">Developing</span>' : ""}${a.demo ? '<span>Demo</span>' : ""}</div></header>${coverHtml}<div class="reader-body ${isDeveloping ? "is-developing" : ""}">${bodyHtml}</div><footer class="reader-footer"><strong>${escapeHtml(state.settings.publication_name || OFFICIAL_PUBLICATION_NAME)}</strong><span>Student journalism from ${escapeHtml(state.settings.school_name || DEFAULT_SETTINGS.school_name)}</span></footer>`;
@@ -1163,6 +1184,7 @@
         const key = escapeHtml(item.key);
         const preview = escapeHtml(articlePhotoPreviewUrl(item));
         const caption = escapeHtml(item.caption || "");
+        const credit = escapeHtml(item.credit || "");
         return `<div class="article-image-item" data-photo-key="${key}">
           <img class="article-image-thumb" src="${preview}" alt="Article photo ${index + 1}">
           <div class="article-image-fields">
@@ -1175,6 +1197,16 @@
                 value="${caption}"
                 placeholder="What is happening in this photo?"
                 data-photo-caption="${key}"
+              >
+            </label>
+            <label>
+              <span>Credit / creator <small>(optional)</small></span>
+              <input
+                type="text"
+                maxlength="180"
+                value="${credit}"
+                placeholder="Photo by… / Illustration by…"
+                data-photo-credit="${key}"
               >
             </label>
           </div>
@@ -1196,6 +1228,7 @@
         id: null,
         image_path: "",
         caption: "",
+        credit: "",
         file,
         objectUrl: URL.createObjectURL(file),
         removed: false,
@@ -1323,6 +1356,7 @@
         article_id: articleId,
         image_path: item.image_path,
         caption: String(item.caption || "").trim(),
+        credit: String(item.credit || "").trim(),
         sort_order: (index + 1) * 10,
         updated_at: new Date().toISOString(),
       };
@@ -1363,7 +1397,7 @@
     if (!db || !articleId) return [];
     const { data, error } = await db
       .from("article_images")
-      .select("id,article_id,image_path,caption,sort_order,created_at")
+      .select("id,article_id,image_path,caption,credit,sort_order,created_at")
       .eq("article_id", articleId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
@@ -1377,9 +1411,11 @@
 
   function inlineArticlePhotoHtml(photo, index) {
     const caption = String(photo.caption || "").trim();
+    const credit = String(photo.credit || "").trim();
+    const captionBits = [caption, credit].filter(Boolean);
     return `<figure class="reader-inline-photo">
       <img src="${escapeHtml(mediaUrl(photo.image_path))}" alt="${escapeHtml(caption || `Article photo ${index + 1}`)}" loading="lazy">
-      ${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ""}
+      ${captionBits.length ? `<figcaption>${captionBits.map((bit) => escapeHtml(bit)).join(" · ")}</figcaption>` : ""}
     </figure>`;
   }
 
@@ -1522,13 +1558,30 @@
     }
     renderAdminLists();
   }
+  function sortedAdminArticles() {
+    const mode = $("#articleLibrarySort")?.value || "newest";
+    const list = [...state.adminArticles];
+    const publishedTime = (a) => {
+      const t = new Date(a.published_at || a.created_at || a.updated_at || 0).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+    const updatedTime = (a) => {
+      const t = new Date(a.updated_at || a.published_at || a.created_at || 0).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+    if (mode === "oldest") return list.sort((a, b) => publishedTime(a) - publishedTime(b));
+    if (mode === "updated") return list.sort((a, b) => updatedTime(b) - updatedTime(a));
+    if (mode === "title") return list.sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "en", { sensitivity: "base" }));
+    return list.sort((a, b) => publishedTime(b) - publishedTime(a));
+  }
+
   function renderAdminLists() {
     const count = state.adminArticles.length;
     const countEl = $("#articleCount");
     if (countEl)
       countEl.textContent = `${count} ${count === 1 ? "story" : "stories"}`;
     $("#adminArticleList").innerHTML =
-      state.adminArticles
+      sortedAdminArticles()
         .map(
           (a) =>
             `<div class="admin-row"><div><h4>${escapeHtml(a.title)}</h4><small>${escapeHtml(normalizeCategory(a.category))} · ${escapeHtml(a.status)} · ${escapeHtml(formatDate(a.published_at))}</small></div><div class="row-actions"><button data-edit-article="${escapeHtml(a.id)}">Edit</button><button class="danger" data-delete-article="${escapeHtml(a.id)}">Delete</button></div></div>`,
@@ -1607,7 +1660,7 @@
       cover_offset_x: 0,
       cover_offset_y: 0,
       cover_rotation: 0,
-      cover_frame: "landscape",
+      cover_frame: "auto",
     });
   }
   async function editArticle(id) {
@@ -1617,6 +1670,7 @@
     $("#articleTitle").value = a.title || "";
     $("#articleCategory").value = normalizeCategory(a.category) || "News";
     $("#articleAuthor").value = a.author_name || "";
+    $("#articleImageCredit").value = a.image_credit || "";
     $("#articleDek").value = a.dek || "";
     $("#articleBody").value = a.body || "";
     $("#articleFeatured").checked = !!a.is_featured;
@@ -1672,6 +1726,7 @@
         slug: existing?.slug || `${slugify(title)}-${Date.now().toString(36)}`,
         category: normalizeCategory($("#articleCategory").value),
         author_name: $("#articleAuthor").value.trim(),
+        image_credit: $("#articleImageCredit").value.trim(),
         dek: $("#articleDek").value.trim(),
         body: $("#articleBody").value.trim(),
         cover_image_path: cover,
@@ -2132,6 +2187,7 @@
     $("#archiveSearch").addEventListener("input", filterArchives);
     $("#archiveCategory").addEventListener("change", filterArchives);
     $("#archiveYear").addEventListener("change", filterArchives);
+    $("#articleLibrarySort").addEventListener("change", renderAdminLists);
     $("#adminToggle").addEventListener("click", openCmsDialog);
     $("#cmsAccessLink").addEventListener("click", openCmsDialog);
     $("#newsletterForm").addEventListener("submit", async (e) => {
@@ -2284,12 +2340,21 @@
       addArticlePhotoFiles(e.target.files);
     });
     $("#articleImageList").addEventListener("input", (e) => {
-      const input = e.target.closest("[data-photo-caption]");
-      if (!input) return;
-      const item = articlePhotoDraft.find(
-        (photo) => photo.key === input.dataset.photoCaption,
-      );
-      if (item) item.caption = input.value;
+      const captionInput = e.target.closest("[data-photo-caption]");
+      if (captionInput) {
+        const item = articlePhotoDraft.find(
+          (photo) => photo.key === captionInput.dataset.photoCaption,
+        );
+        if (item) item.caption = captionInput.value;
+        return;
+      }
+      const creditInput = e.target.closest("[data-photo-credit]");
+      if (creditInput) {
+        const item = articlePhotoDraft.find(
+          (photo) => photo.key === creditInput.dataset.photoCredit,
+        );
+        if (item) item.credit = creditInput.value;
+      }
     });
     $("#staffForm").addEventListener("submit", handleStaffSubmit);
     $("#staffCancelEdit").addEventListener("click", resetStaffForm);
@@ -2297,15 +2362,17 @@
     $("#achievementForm").addEventListener("submit", handleAchievementSubmit);
     $("#articleReset").addEventListener("click", resetArticleForm);
     $("#achievementReset").addEventListener("click", resetAchievementForm);
-    $("#coverEditorReset").addEventListener("click", () =>
+    const fitOriginalCover = () =>
       setCoverControls({
         cover_zoom: 1,
         cover_offset_x: 0,
         cover_offset_y: 0,
         cover_rotation: 0,
-        cover_frame: "landscape",
-      }),
-    );
+        cover_frame: "auto",
+      });
+
+    $("#coverFitOriginal").addEventListener("click", fitOriginalCover);
+    $("#coverEditorReset").addEventListener("click", fitOriginalCover);
     [
       "#coverZoom",
       "#coverX",
@@ -2319,6 +2386,16 @@
       if (coverObjectUrl) URL.revokeObjectURL(coverObjectUrl);
       coverObjectUrl = URL.createObjectURL(file);
       $("#articleCoverPreview").src = coverObjectUrl;
+
+      // Every newly selected image begins uncropped.
+      // The editor can then intentionally zoom, move, rotate, or choose a crop frame.
+      setCoverControls({
+        cover_zoom: 1,
+        cover_offset_x: 0,
+        cover_offset_y: 0,
+        cover_rotation: 0,
+        cover_frame: "auto",
+      });
     });
     $$(".admin-tab").forEach((btn) =>
       btn.addEventListener("click", () => switchAdminTab(btn.dataset.adminTab)),
@@ -2375,7 +2452,10 @@
     }
 
     // Keep homepage timestamps current while the page stays open.
-    window.setInterval(refreshRelativeTimes, 60000);
+    window.setInterval(() => {
+      refreshRelativeTimes();
+      renderBreaking();
+    }, 60000);
   }
   function openRequestedPage() {
     if (!openingComplete || !startupDataReady) return;
