@@ -10,7 +10,7 @@
     <title>The East-Washington Times | BEWNHS</title>
     <link rel="icon" href="assets/publication-mark.png" type="image/png" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-    <link rel="stylesheet" href="styles.css?v=v26-fixed-20260922" />
+    <link rel="stylesheet" href="styles.css?v=v26-manual-top-stories-20260922" />
   </head>
   <body class="intro-locked">
     <div
@@ -866,9 +866,19 @@
                   story</label
                 >
                 <label class="check-label"
+                  ><input id="articleTopStory" type="checkbox" /> Top
+                  story</label
+                >
+                <label class="check-label"
                   ><input id="articleBreaking" type="checkbox" /> Breaking
                   news</label
                 >
+                <p class="span-2 article-placement-help">
+                  <strong>Homepage placement:</strong>
+                  Featured story controls the large Front Page story.
+                  Top story places this article in Top Stories.
+                  Breaking news appears in the breaking bar for 24 hours.
+                </p>
                 <label
                   >Status<select id="articleStatus">
                     <option value="published">Published</option>
@@ -1155,6 +1165,6 @@
 
     <script src="config.js?v=premium-v24-20260922"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-    <script src="app.js?v=v26-breaking-24h-20260922"></script>
+    <script src="app.js?v=v26-manual-top-stories-20260922"></script>
   </body>
 </html>
