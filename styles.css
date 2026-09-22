@@ -7012,3 +7012,134 @@ dialog::backdrop {
     font-size: 8px;
   }
 }
+
+
+/* ==========================================================================
+   V26 — Mobile Front Page width/overflow fix
+   The frame class on the lead story has an aspect-ratio. Combined with the
+   mobile fixed height, that could make the card calculate wider than the
+   viewport. On phones the card must always follow the page width; the image
+   itself remains clipped inside it and keeps the saved editor framing.
+   ========================================================================== */
+@media (max-width: 700px) {
+  .hero-grid,
+  .home-news .hero-grid,
+  .news-section .hero-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .lead-story,
+  .lead-story.frame-landscape,
+  .lead-story.frame-auto,
+  .lead-story.frame-square,
+  .lead-story.frame-portrait {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+  }
+
+  .lead-media,
+  .lead-story .lead-media {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    contain: paint !important;
+  }
+
+  .lead-story .lead-media img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    display: block !important;
+  }
+
+  /* Preserve Original / Fit mode without allowing the image to change the
+     card's dimensions. */
+  .lead-story.frame-auto .lead-media img {
+    object-fit: contain !important;
+  }
+
+  /* Prevent any long headline/meta/credit from widening the hero. */
+  .lead-overlay,
+  .lead-overlay h2,
+  .lead-overlay p,
+  .lead-overlay .story-meta,
+  .lead-image-credit {
+    min-width: 0 !important;
+    max-width: calc(100% - 32px) !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+
+/* ==========================================================================
+   V26 — Mobile spacing polish
+   Adds breathing room around the Front Page hero and nudges Top Stories
+   thumbnails away from the left edge.
+   ========================================================================== */
+@media (max-width: 700px) {
+  /* Keep the Front Page hero from touching the full content width. */
+  .lead-story,
+  .lead-story.frame-landscape,
+  .lead-story.frame-auto,
+  .lead-story.frame-square,
+  .lead-story.frame-portrait {
+    width: calc(100% - 28px) !important;
+    max-width: calc(100% - 28px) !important;
+    margin-left: 14px !important;
+    margin-right: 14px !important;
+  }
+
+  /* Give Top Stories thumbnails a little left breathing room. */
+  .top-story button {
+    grid-template-columns: 102px minmax(0, 1fr) !important;
+  }
+
+  .top-story-media {
+    margin-left: 10px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .lead-story,
+  .lead-story.frame-landscape,
+  .lead-story.frame-auto,
+  .lead-story.frame-square,
+  .lead-story.frame-portrait {
+    width: calc(100% - 24px) !important;
+    max-width: calc(100% - 24px) !important;
+    margin-left: 12px !important;
+    margin-right: 12px !important;
+  }
+
+  .top-story button {
+    grid-template-columns: 98px minmax(0, 1fr) !important;
+  }
+
+  .top-story-media {
+    margin-left: 8px !important;
+  }
+}
+
+
+/* ==========================================================================
+   V26 — Mobile Top Stories heading left spacing
+   ========================================================================== */
+@media (max-width: 700px) {
+  .top-stories > .section-kicker {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
