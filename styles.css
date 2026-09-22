@@ -7143,3 +7143,26 @@ dialog::backdrop {
     padding-right: 12px !important;
   }
 }
+
+
+/* ==========================================================================
+   V26 — Manual Top Stories
+   ========================================================================== */
+.article-placement-help {
+  margin: 2px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--maroon-700);
+  background: var(--soft);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.article-placement-help strong {
+  color: var(--ink);
+}
+
+.top-stories-empty {
+  padding: 14px 12px;
+}
