@@ -711,14 +711,20 @@
       $("#leadStory").innerHTML =
         '<div class="empty-hero"><span class="section-kicker light">Newsroom</span><h2>No published stories yet.</h2><p>Authorized staff can publish the first story from the CMS.</p></div>';
     }
-    const top = sorted.filter((a) => a.id !== lead?.id).slice(0, 4);
+    // Top Stories are editorially selected, not simply the newest articles.
+    // They remain here until an editor unchecks Top story or the article is unpublished.
+    const top = sorted
+      .filter((a) => a.is_top_story && a.id !== lead?.id)
+      .slice(0, 4);
+
     $("#topStoriesList").innerHTML =
       top
         .map(
           (a) =>
             `<article class="top-story"><button data-article-id="${escapeHtml(a.id)}">${coverHtml(a, "top-story-media")}<div class="top-story-copy"><span class="section-kicker">${escapeHtml(a.category)}</span><h3>${escapeHtml(a.title)}</h3><p>${relativeTimeHtml(a.published_at)}</p></div></button></article>`,
         )
-        .join("") || '<p class="muted">No additional stories yet.</p>';
+        .join("") ||
+      '<p class="muted top-stories-empty">No Top Stories selected yet.</p>';
     $("#latestGrid").innerHTML =
       sorted
         .filter((a) => a.id !== lead?.id)
@@ -1674,6 +1680,7 @@
     $("#articleDek").value = a.dek || "";
     $("#articleBody").value = a.body || "";
     $("#articleFeatured").checked = !!a.is_featured;
+    $("#articleTopStory").checked = !!a.is_top_story;
     $("#articleBreaking").checked = !!a.is_breaking;
     $("#articleStatus").value = a.status || "draft";
     $("#articleCoverPreview").src = mediaUrl(a.cover_image_path);
@@ -1734,6 +1741,7 @@
           ? new Date($("#articleDate").value).toISOString()
           : new Date().toISOString(),
         is_featured: $("#articleFeatured").checked,
+        is_top_story: $("#articleTopStory").checked,
         is_breaking: $("#articleBreaking").checked,
         status,
         updated_by: state.currentUser.id,
