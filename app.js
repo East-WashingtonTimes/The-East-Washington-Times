@@ -64,6 +64,8 @@
     usingDemo: !db,
   };
   let coverObjectUrl = "";
+  let articlePhotoDraft = [];
+  let articlePhotoOriginalIds = new Set();
   let authPending = false;
   let operationBusy = false;
   let openingComplete = false;
@@ -998,23 +1000,21 @@
     refreshRelativeTimes();
   }
 
-  function openArticle(id) {
+  async function openArticle(id) {
     const a =
       state.articles.find((x) => String(x.id) === String(id)) ||
       state.adminArticles.find((x) => String(x.id) === String(id));
     if (!a) return;
 
     const rawBody = String(a.body || "").trim();
-    const paragraphs = rawBody
-      .split(/\n{2,}/)
-      .filter(Boolean)
-      .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
-      .join("");
+    const articlePhotos = a.demo ? [] : await fetchArticlePhotos(a.id);
+    const storyContent = articleBodyWithPhotos(rawBody, articlePhotos);
+
     const isDeveloping = rawBody.length < 140;
     const developingNote = `<aside class="developing-note" aria-label="Story status"><span>Developing story</span><p>This report is still being completed by The East-Washington Times. Additional verified details, context, and updates will be added as the newsroom confirms them.</p></aside>`;
     const bodyHtml = rawBody
-      ? `${paragraphs}${isDeveloping ? developingNote : ""}`
-      : `${developingNote}<p class="reader-placeholder">The full article has not been added yet. Please check back for the completed report.</p>`;
+      ? `${storyContent}${isDeveloping ? developingNote : ""}`
+      : `${storyContent}${developingNote}<p class="reader-placeholder">The full article has not been added yet. Please check back for the completed report.</p>`;
 
     const coverPath = String(a.cover_image_path || "").trim();
     const fallbackCoverByCategory = {
@@ -1131,6 +1131,300 @@
     if (error) throw error;
     return path;
   }
+  function clearArticlePhotoDraft() {
+    articlePhotoDraft.forEach((item) => {
+      if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+    });
+    articlePhotoDraft = [];
+    articlePhotoOriginalIds = new Set();
+    const input = $("#articleImages");
+    if (input) input.value = "";
+    renderArticlePhotoManager();
+  }
+
+  function articlePhotoPreviewUrl(item) {
+    if (item.objectUrl) return item.objectUrl;
+    return mediaUrl(item.image_path || "");
+  }
+
+  function renderArticlePhotoManager() {
+    const list = $("#articleImageList");
+    if (!list) return;
+
+    const visible = articlePhotoDraft.filter((item) => !item.removed);
+    if (!visible.length) {
+      list.innerHTML =
+        '<p class="muted article-image-empty">No additional photos yet.</p>';
+      return;
+    }
+
+    list.innerHTML = visible
+      .map((item, index) => {
+        const key = escapeHtml(item.key);
+        const preview = escapeHtml(articlePhotoPreviewUrl(item));
+        const caption = escapeHtml(item.caption || "");
+        return `<div class="article-image-item" data-photo-key="${key}">
+          <img class="article-image-thumb" src="${preview}" alt="Article photo ${index + 1}">
+          <div class="article-image-fields">
+            <strong>Photo ${index + 1}</strong>
+            <label>
+              <span>Caption <small>(optional)</small></span>
+              <input
+                type="text"
+                maxlength="240"
+                value="${caption}"
+                placeholder="What is happening in this photo?"
+                data-photo-caption="${key}"
+              >
+            </label>
+          </div>
+          <div class="article-image-actions" aria-label="Photo controls">
+            <button type="button" class="btn btn-ghost compact-btn" data-photo-move="up" data-photo-key="${key}" ${index === 0 ? "disabled" : ""}>↑</button>
+            <button type="button" class="btn btn-ghost compact-btn" data-photo-move="down" data-photo-key="${key}" ${index === visible.length - 1 ? "disabled" : ""}>↓</button>
+            <button type="button" class="btn btn-ghost compact-btn danger-text" data-photo-remove="${key}">Remove</button>
+          </div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function addArticlePhotoFiles(files) {
+    [...(files || [])].forEach((file) => {
+      if (!file || !file.type?.startsWith("image/")) return;
+      articlePhotoDraft.push({
+        key: `new-${crypto.randomUUID()}`,
+        id: null,
+        image_path: "",
+        caption: "",
+        file,
+        objectUrl: URL.createObjectURL(file),
+        removed: false,
+        isNew: true,
+      });
+    });
+    renderArticlePhotoManager();
+    const input = $("#articleImages");
+    if (input) input.value = "";
+  }
+
+  function moveArticlePhoto(key, direction) {
+    const visible = articlePhotoDraft.filter((item) => !item.removed);
+    const current = visible.findIndex((item) => item.key === key);
+    if (current < 0) return;
+    const target = direction === "up" ? current - 1 : current + 1;
+    if (target < 0 || target >= visible.length) return;
+
+    const currentItem = visible[current];
+    const targetItem = visible[target];
+    const currentIndex = articlePhotoDraft.indexOf(currentItem);
+    const targetIndex = articlePhotoDraft.indexOf(targetItem);
+    articlePhotoDraft[currentIndex] = targetItem;
+    articlePhotoDraft[targetIndex] = currentItem;
+    renderArticlePhotoManager();
+  }
+
+  function removeArticlePhoto(key) {
+    const item = articlePhotoDraft.find((photo) => photo.key === key);
+    if (!item) return;
+
+    if (item.isNew) {
+      if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+      articlePhotoDraft = articlePhotoDraft.filter((photo) => photo.key !== key);
+    } else {
+      item.removed = true;
+    }
+    renderArticlePhotoManager();
+  }
+
+  async function loadArticlePhotosForEdit(articleId) {
+    clearArticlePhotoDraft();
+    if (!db || !articleId) return;
+
+    const list = $("#articleImageList");
+    if (list)
+      list.innerHTML =
+        '<p class="muted article-image-empty">Loading article photos…</p>';
+
+    const { data, error } = await db
+      .from("article_images")
+      .select("*")
+      .eq("article_id", articleId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.warn("Could not load article photos.", error);
+      if (list)
+        list.innerHTML =
+          '<p class="form-message error-text">Additional photos could not be loaded. Run the V24 Supabase SQL if you have not done so yet.</p>';
+      return;
+    }
+
+    articlePhotoDraft = (data || []).map((photo) => ({
+      ...photo,
+      key: `existing-${photo.id}`,
+      file: null,
+      objectUrl: "",
+      removed: false,
+      isNew: false,
+    }));
+    articlePhotoOriginalIds = new Set(
+      articlePhotoDraft.map((photo) => String(photo.id)),
+    );
+    renderArticlePhotoManager();
+  }
+
+  async function syncArticlePhotos(articleId) {
+    if (!db || !articleId) return;
+
+    const active = articlePhotoDraft.filter((item) => !item.removed);
+    const removedExisting = articlePhotoDraft.filter(
+      (item) => item.removed && !item.isNew && item.id,
+    );
+
+    // Upload newly selected files first.
+    for (const item of active) {
+      if (item.isNew && item.file && !item.image_path) {
+        item.image_path = await uploadMedia(
+          item.file,
+          `articles/${articleId}/inline`,
+        );
+      }
+    }
+
+    // Remove photos deleted in the editor.
+    if (removedExisting.length) {
+      const removedIds = removedExisting.map((item) => item.id);
+      const { error: deleteError } = await db
+        .from("article_images")
+        .delete()
+        .in("id", removedIds);
+      if (deleteError) throw deleteError;
+
+      const storagePaths = removedExisting
+        .map((item) => item.image_path)
+        .filter(Boolean);
+      if (storagePaths.length) {
+        const { error: storageDeleteError } = await db.storage
+          .from("journalism-media")
+          .remove(storagePaths);
+        if (storageDeleteError)
+          console.warn(
+            "Article image rows were removed, but some Storage files could not be deleted.",
+            storageDeleteError,
+          );
+      }
+    }
+
+    // Update existing rows and insert new rows in the order shown in the editor.
+    for (let index = 0; index < active.length; index += 1) {
+      const item = active[index];
+      const payload = {
+        article_id: articleId,
+        image_path: item.image_path,
+        caption: String(item.caption || "").trim(),
+        sort_order: (index + 1) * 10,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (item.isNew) {
+        const { data, error } = await db
+          .from("article_images")
+          .insert({
+            ...payload,
+            created_by: state.currentUser.id,
+          })
+          .select("*")
+          .single();
+        if (error) throw error;
+        item.id = data.id;
+        item.key = `existing-${data.id}`;
+        item.isNew = false;
+        if (item.objectUrl) {
+          URL.revokeObjectURL(item.objectUrl);
+          item.objectUrl = "";
+        }
+      } else {
+        const { error } = await db
+          .from("article_images")
+          .update(payload)
+          .eq("id", item.id);
+        if (error) throw error;
+      }
+    }
+
+    articlePhotoDraft = active;
+    articlePhotoOriginalIds = new Set(
+      articlePhotoDraft.filter((item) => item.id).map((item) => String(item.id)),
+    );
+  }
+
+  async function fetchArticlePhotos(articleId) {
+    if (!db || !articleId) return [];
+    const { data, error } = await db
+      .from("article_images")
+      .select("id,article_id,image_path,caption,sort_order,created_at")
+      .eq("article_id", articleId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.warn("Could not load inline article photos.", error);
+      return [];
+    }
+    return data || [];
+  }
+
+  function inlineArticlePhotoHtml(photo, index) {
+    const caption = String(photo.caption || "").trim();
+    return `<figure class="reader-inline-photo">
+      <img src="${escapeHtml(mediaUrl(photo.image_path))}" alt="${escapeHtml(caption || `Article photo ${index + 1}`)}" loading="lazy">
+      ${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ""}
+    </figure>`;
+  }
+
+  function articleBodyWithPhotos(rawBody, photos) {
+    const paragraphs = String(rawBody || "")
+      .trim()
+      .split(/\n{2,}/)
+      .filter(Boolean);
+
+    if (!paragraphs.length) {
+      return (photos || []).map(inlineArticlePhotoHtml).join("");
+    }
+
+    if (!photos?.length) {
+      return paragraphs
+        .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+        .join("");
+    }
+
+    const photoBuckets = new Map();
+    photos.forEach((photo, index) => {
+      const position = Math.max(
+        1,
+        Math.min(
+          paragraphs.length,
+          Math.round(((index + 1) * paragraphs.length) / (photos.length + 1)),
+        ),
+      );
+      if (!photoBuckets.has(position)) photoBuckets.set(position, []);
+      photoBuckets.get(position).push({ photo, index });
+    });
+
+    const parts = [];
+    paragraphs.forEach((paragraph, index) => {
+      parts.push(`<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`);
+      const afterParagraph = index + 1;
+      const bucket = photoBuckets.get(afterParagraph) || [];
+      bucket.forEach(({ photo, index: photoIndex }) => {
+        parts.push(inlineArticlePhotoHtml(photo, photoIndex));
+      });
+    });
+
+    return parts.join("");
+  }
+
   async function refreshAdminUser() {
     if (!db) {
       state.currentUser = null;
@@ -1307,6 +1601,7 @@
     $("#articleDate").value = "";
     $("#articleFormMessage").textContent = "";
     $("#articleCoverPreview").src = "assets/hero-placeholder.svg";
+    clearArticlePhotoDraft();
     setCoverControls({
       cover_zoom: 1,
       cover_offset_x: 0,
@@ -1315,7 +1610,7 @@
       cover_frame: "landscape",
     });
   }
-  function editArticle(id) {
+  async function editArticle(id) {
     const a = state.adminArticles.find((x) => String(x.id) === String(id));
     if (!a) return;
     $("#articleId").value = a.id;
@@ -1336,6 +1631,7 @@
     }
     switchAdminTab("articles");
     $("#articleForm").scrollIntoView({ behavior: "smooth", block: "start" });
+    await loadArticlePhotosForEdit(a.id);
   }
   async function handleArticleSubmit(e) {
     e.preventDefault();
@@ -1402,6 +1698,11 @@
             .single();
       if (res.error) throw res.error;
       const savedArticleId = res.data?.id || id;
+
+      setButtonBusy(btn, true, "Saving photos…");
+      setGlobalBusy(true, "Saving article photos…");
+      await syncArticlePhotos(savedArticleId);
+
       let alertNote = "";
       if (shouldNotify && savedArticleId) {
         setButtonBusy(btn, true, "Sending alerts…");
@@ -1711,6 +2012,19 @@
         closeLockedDialog($("#" + close.dataset.closeDialog));
         return;
       }
+      const moveArticlePhotoButton = e.target.closest("[data-photo-move]");
+      if (moveArticlePhotoButton) {
+        moveArticlePhoto(
+          moveArticlePhotoButton.dataset.photoKey,
+          moveArticlePhotoButton.dataset.photoMove,
+        );
+        return;
+      }
+      const removeArticlePhotoButton = e.target.closest("[data-photo-remove]");
+      if (removeArticlePhotoButton) {
+        removeArticlePhoto(removeArticlePhotoButton.dataset.photoRemove);
+        return;
+      }
       const edit = e.target.closest("[data-edit-article]");
       if (edit) {
         editArticle(edit.dataset.editArticle);
@@ -1966,6 +2280,17 @@
       showAuthFeedback(...feedback);
     });
     $("#articleForm").addEventListener("submit", handleArticleSubmit);
+    $("#articleImages").addEventListener("change", (e) => {
+      addArticlePhotoFiles(e.target.files);
+    });
+    $("#articleImageList").addEventListener("input", (e) => {
+      const input = e.target.closest("[data-photo-caption]");
+      if (!input) return;
+      const item = articlePhotoDraft.find(
+        (photo) => photo.key === input.dataset.photoCaption,
+      );
+      if (item) item.caption = input.value;
+    });
     $("#staffForm").addEventListener("submit", handleStaffSubmit);
     $("#staffCancelEdit").addEventListener("click", resetStaffForm);
     $("#publicationForm").addEventListener("submit", handlePublicationSubmit);
