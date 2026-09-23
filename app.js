@@ -725,7 +725,7 @@
     if (lead) {
       const leadCredit = imageCreditText(lead.image_credit);
       const leadEl = $("#leadStory");
-      leadEl.className = `lead-story ${frameClass(lead)}`;
+      leadEl.className = `lead-story ${frameClass(lead)}${leadCredit ? " has-image-credit" : ""}`;
       leadEl.innerHTML =
         `<div class="lead-media media-frame ${frameClass(lead)}" style="${coverStyle(lead)}"><img src="${escapeHtml(mediaUrl(lead.cover_image_path))}" alt="" fetchpriority="high"></div><div class="lead-overlay"><span class="story-tag">${escapeHtml(lead.category)}</span><h2>${escapeHtml(lead.title)}</h2><p>${escapeHtml(lead.dek || "")}</p><div class="story-meta">${storyMeta(lead)}</div><span class="lead-read">Read the full story <span aria-hidden="true">↗</span></span></div>${leadCredit ? `<span class="lead-image-credit" aria-label="Image credit">${escapeHtml(leadCredit)}</span>` : ""}<button class="story-button" aria-label="Read ${escapeHtml(lead.title)}" data-article-id="${escapeHtml(lead.id)}"></button>`;
     } else {
